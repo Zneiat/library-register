@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#00a2ed</color>
+    <color name="colorPrimaryDark">#00a2ed</color>
+    <color name="colorAccent">#00a2ed</color>
+
+    <color name="colorWhite">#FFF</color>
+
+    <color name="bgGray">#F3F3F3</color>
+    <color name="bgBnav">#FFF</color>
+
+    <color name="BnavTabUnselect">#ffbababa</color>
+
+    <color name="textGray">#ff797979</color>
+    <color name="textGrayDark">#ff616161</color>
+    <color name="textGrayLight">#ffbababa</color>
+    <color name="textGrayTranslucentLight">#abbababa</color>
+    <color name="textGrayVeryDark">#ff525252</color>
+    <color name="textPink">#ffd665a0</color>
+    <color name="textWhite">#ffffffff</color>
+</resources>
