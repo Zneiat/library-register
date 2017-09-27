@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.preference.Preference;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -20,6 +21,10 @@ import com.zhy.http.okhttp.callback.StringCallback;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -35,6 +40,7 @@ public class Kernel extends Application {
 
     public static final String URL_CATEGORY_RES = "http://query.qwqaq.com/school-library-signup-task/get-category";
     public static final String URL_BOOK_RES = "http://query.qwqaq.com/school-library-signup-task/get-book";
+    public static final String URL_UPLOAD = "http://query.qwqaq.com/school-library-signup-task/upload";
 
     public static SharedPreferences QWQ_PREFERENCES;
 
@@ -76,7 +82,7 @@ public class Kernel extends Application {
         public static ArrayList<CategoryBean> CategoryBeansCloud = new ArrayList<CategoryBean>();
 
         // 本地编辑未上传的数据
-        public static ArrayList<CategoryBean> CategoryBeansLocal = new ArrayList<CategoryBean>();
+        public static HashMap<String, CategoryBean> CategoryBeansLocal = new HashMap<String, CategoryBean>();
 
         /**
          * 云端请求 类目列表 数据，并保存到 内存 和 本地存储
@@ -96,7 +102,7 @@ public class Kernel extends Application {
                     .execute(new StringCallback() {
                         @Override
                         public void onError(Call call, Exception e, int id) {
-                            Toast.makeText(context, "厉害了... 数据下载失败，请检查网络连接 \n" + e.getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, "？？？数据下载失败 \n" + e.getMessage(), Toast.LENGTH_LONG).show();
 
                             reqEvents.onError(call, e, id);
                         }
@@ -121,10 +127,14 @@ public class Kernel extends Application {
                             } catch (Exception e) {
                                 Toast.makeText(context, "出现一个野生的错误\n" + e.getMessage(), Toast.LENGTH_LONG).show();
                                 Log.e("请求云端数据下载", "出现错误", e);
+                                return;
                             }
 
-                            // 保存到内存
+                            // 全部删除
                             CategoryBeansCloud.clear();
+                            CategoryBeansLocal.clear();
+
+                            // 保存到内存
                             CategoryBeansCloud.addAll(categories);
 
                             // 保存到存储空间
@@ -153,7 +163,7 @@ public class Kernel extends Application {
                     .execute(new StringCallback() {
                         @Override
                         public void onError(Call call, Exception e, int id) {
-                            Toast.makeText(context, "厉害了... 数据下载失败，请检查网络连接 \n" + e.getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, "厉害了？数据下载失败 \n" + e.getMessage(), Toast.LENGTH_LONG).show();
 
                             reqEvents.onError(call, e, id);
                         }
@@ -178,6 +188,7 @@ public class Kernel extends Application {
                             } catch (Exception e) {
                                 Toast.makeText(context, "出现一个野生的错误\n" + e.getMessage(), Toast.LENGTH_LONG).show();
                                 Log.e("请求云端数据下载", "出现错误", e);
+                                return;
                             }
 
                             // 保存到内存
@@ -186,6 +197,68 @@ public class Kernel extends Application {
                                     item.getBooks().clear();
                                     item.getBooks().addAll(books);
                                 }
+                            }
+
+                            // 保存到存储空间
+                            categoryBeansStore();
+
+                            reqEvents.onResponse(response, id);
+                        }
+                    });
+        }
+
+        /**
+         * 上传数据
+         */
+        public static void cloudUpdate(final Context context, final StringCallback reqEvents) {
+            if (!Kernel.isNetworkAvailable(context)) {
+                Toast.makeText(context, "没有网，无法上传数据到云端", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            HashMap<String, ArrayList<BookBean>> books = new HashMap<String, ArrayList<BookBean>>();
+            for (final CategoryBean itemCategory : CategoryBeansLocal.values())
+                books.put(itemCategory.getName(), itemCategory.getBooks());
+
+            Gson gson = new Gson();
+            String booksJson = gson.toJson(books);
+
+            OkHttpUtils
+                    .post()
+                    .url(Kernel.URL_UPLOAD)
+                    .addParams("books_data", booksJson)
+                    .addHeader("X-QWQ", "SchoolLibrarySignupTask")
+                    .build()
+                    .execute(new StringCallback() {
+                        @Override
+                        public void onError(Call call, Exception e, int id) {
+                            Toast.makeText(context, "什么鬼？数据上传失败 \n" + e.getMessage(), Toast.LENGTH_LONG).show();
+
+                            reqEvents.onError(call, e, id);
+                        }
+
+                        @Override
+                        public void onResponse(String response, int id) {
+                            try {
+                                JSONObject json = new JSONObject(response);
+                                if (!json.getBoolean("success")) {
+                                    Toast.makeText(context, "服务器响应了错误\n" + json.getString("msg"), Toast.LENGTH_LONG).show();
+                                    return;
+                                } else {
+                                    Toast.makeText(context, json.getString("msg"), Toast.LENGTH_LONG).show();
+                                }
+                            } catch (Exception e) {
+                                Toast.makeText(context, "出现一个野生的错误\n" + e.getMessage(), Toast.LENGTH_LONG).show();
+                                Log.e("请求上传数据到云端", "出现错误", e);
+                                return;
+                            }
+
+                            // 清空 CategoryBeansLocal
+                            CategoryBeansLocal.clear();
+
+                            // 所有设置为禁止删除
+                            for (CategoryBean item : CategoryBeansCloud) {
+                                item.setCanDelete(false);
                             }
 
                             // 保存到存储空间
@@ -219,7 +292,7 @@ public class Kernel extends Application {
          */
         public static void categoryBeansLocalStore() {
             Gson gson = new Gson();
-            String json = gson.toJson(CategoryBeansCloud);
+            String json = gson.toJson(CategoryBeansLocal);
             QWQ_PREFERENCES.edit().putString("CategoryBeansLocal", json).apply();
             // Log.d("", json);
         }
@@ -237,12 +310,12 @@ public class Kernel extends Application {
             String categoryBeansLocalJson = QWQ_PREFERENCES.getString("CategoryBeansLocal", "[]").trim();
 
             ArrayList<CategoryBean> categoryBeansCloud = new ArrayList<CategoryBean>();
-            ArrayList<CategoryBean> categoryBeansLocal = new ArrayList<CategoryBean>();
+            HashMap<String, CategoryBean> categoryBeansLocal = new HashMap<String, CategoryBean>();
             try {
                 categoryBeansCloud = (new Gson()).fromJson(categoryBeansCloudJson,
                         new TypeToken<ArrayList<CategoryBean>>() {}.getType());
                 categoryBeansLocal = (new Gson()).fromJson(categoryBeansLocalJson,
-                        new TypeToken<ArrayList<CategoryBean>>() {}.getType());
+                        new TypeToken<HashMap<String, CategoryBean>>() {}.getType());
             } catch (Exception e) {
                 Log.e("从本地存储加载数据", "出现错误", e);
             }

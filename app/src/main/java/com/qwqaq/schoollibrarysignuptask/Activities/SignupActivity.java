@@ -30,7 +30,7 @@ import okhttp3.Call;
 
 public class SignupActivity extends Activity {
 
-    private int mCategoryPosition;
+    private int mCategoryBeansCloudPosition;
     private CategoryBean mWorkCategoryBean = new CategoryBean();
     private LinearLayout mWorkAreaView;
 
@@ -52,8 +52,9 @@ public class SignupActivity extends Activity {
 
         // 接收参数
         Bundle bundle = this.getIntent().getExtras();
-        mCategoryPosition = bundle.getInt("CategoryBeansLocalPosition");
-        mWorkCategoryBean = Kernel.Data.CategoryBeansLocal.get(mCategoryPosition);
+        mCategoryBeansCloudPosition = bundle.getInt("CategoryBeansCloudPosition");
+        String categoryName = bundle.getString("CategoryName");
+        mWorkCategoryBean = Kernel.Data.CategoryBeansLocal.get(categoryName);
 
         mCurrentBookIndex = mWorkCategoryBean.getBookEditStartIndex();
 
@@ -141,7 +142,7 @@ public class SignupActivity extends Activity {
             book = getWorkBooks().get(mCurrentBookIndex);
         }
 
-        mInputNumbering.setText(getWorkCategoryName() + "" + book.getNumbering());
+        mInputNumbering.setText(getWorkCategoryName() + " " + book.getNumbering());
         mInputName.setText(book.getName());
         mInputPress.setText(book.getPress());
         mInputRemarks.setText(book.getRemarks());
@@ -156,7 +157,7 @@ public class SignupActivity extends Activity {
         BookBean book = getWorkBooks().get(mCurrentBookIndex);
         book.setName(mInputName.getText().toString().trim());
         book.setPress(mInputPress.getText().toString().trim());
-        book.setRemarks(mInputName.getText().toString().trim());
+        book.setRemarks(mInputRemarks.getText().toString().trim());
         book.setRegistrarName(Kernel.getRegistrarName());
     }
 
@@ -203,9 +204,10 @@ public class SignupActivity extends Activity {
         // 保存当前编辑的图书
         bookEditSave();
         // 保存当前编辑的图书 index 以便下次返回当前进度
-        mWorkCategoryBean.setBookEditStartIndex(mCurrentBookIndex);
+        // mWorkCategoryBean.setBookEditStartIndex(mCurrentBookIndex);
         // > CategoryBeanLocal 设置到 CategoryBeansCloud
-        Kernel.Data.CategoryBeansCloud.set(mCategoryPosition, mWorkCategoryBean);
+        Kernel.Data.CategoryBeansCloud.set(mCategoryBeansCloudPosition, mWorkCategoryBean);
+        Kernel.Data.categoryBeansStore();
     }
 
     @Override
