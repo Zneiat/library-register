@@ -1,5 +1,6 @@
 package com.qwqaq.schoollibrarysignuptask.Activities;
 
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.design.widget.Snackbar;
@@ -22,6 +23,7 @@ import com.qwqaq.schoollibrarysignuptask.Beans.CategoryBean;
 import com.qwqaq.schoollibrarysignuptask.Kernel;
 import com.qwqaq.schoollibrarysignuptask.Utils.DisplayUtil;
 import com.qwqaq.schoollibrarysignuptask.R;
+import com.qwqaq.schoollibrarysignuptask.Utils.HttpReqEvents;
 import com.qwqaq.schoollibrarysignuptask.Utils.SoftInputUtil;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.StringCallback;
@@ -37,8 +39,8 @@ import okhttp3.Call;
 public class CategoryActivity extends Activity {
 
     private ListView mListView;
-    private View mLoadingProgress;
-    private ArrayList<CategoryBean> mCategoryBeans;
+    private ArrayList<CategoryBean> mCategoryBeansCloud;
+    private ArrayList<CategoryBean> mCategoryBeansLocal;
     private CategoryAdapter mAdapter;
 
     @Override
@@ -60,10 +62,11 @@ public class CategoryActivity extends Activity {
             editRegistrarNameAction();
         }
 
-        mCategoryBeans = Kernel.gCategoryBeans;
+        mCategoryBeansCloud = Kernel.Data.CategoryBeansCloud;
+        mCategoryBeansLocal = Kernel.Data.CategoryBeansLocal;
+
         mListView = (ListView) findViewById(R.id.category_list_view);
-        mLoadingProgress = (View) findViewById(R.id.loading_progress);
-        mAdapter = new CategoryAdapter(this, mCategoryBeans);
+        mAdapter = new CategoryAdapter(this, mCategoryBeansCloud);
 
         CategoryItemOnClickEvent onClickEvent = new CategoryItemOnClickEvent();
         mListView.setOnItemClickListener(onClickEvent);
@@ -120,7 +123,7 @@ public class CategoryActivity extends Activity {
 
     private void addOne(String name) {
         name = name.trim();
-        for (CategoryBean item : mCategoryBeans) {
+        for (CategoryBean item : mCategoryBeansCloud) {
             if (item.getName().trim().equals(name)) {
                 showMsg("同名类目已存在，无需重复创建");
                 return;
@@ -129,8 +132,11 @@ public class CategoryActivity extends Activity {
         CategoryBean category = new CategoryBean();
         category.setName(name);
         category.setRegistrarName(Kernel.getRegistrarName());
+
         mAdapter.add(category);
-        Kernel.localSaveCategoryData();
+        mCategoryBeansLocal.add(category);
+
+        Kernel.Data.categoryBeansStore();
     }
 
     /**
@@ -152,31 +158,57 @@ public class CategoryActivity extends Activity {
     }
 
     /**
-     * 类目单个项目点按事件
+     * 类目 单个项目点按事件
      */
     private class CategoryItemOnClickEvent implements AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
-        @Override
-        public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-            Intent intent = new Intent(CategoryActivity.this, SignupActivity.class);
 
-            final CategoryBean category = mCategoryBeans.get(i);
-            if (!category.getRegistrarName().equals(Kernel.getRegistrarName())) {
-                showMsg("本类目由 " + category.getRegistrarName() + " 全权负责\n以免发生混乱 禁止编辑");
+        /**
+         * 点击 打开进行工作
+         */
+        @Override
+        public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l) {
+            final CategoryBean categoryCloud = mCategoryBeansCloud.get(i);
+
+            // 限制访问
+            if (!categoryCloud.getRegistrarName().equals(Kernel.getRegistrarName())) {
+                showMsg("由" + categoryCloud.getRegistrarName() + "全权负责，以免发生混乱所以禁止编辑");
                 return;
             }
 
-            // 传参
-            Bundle bundle = new Bundle();
-            bundle.putInt("CategoryBeanIndex", i);
-            intent.putExtras(bundle);
+            // 数据云端/本地获取
+            if (categoryCloud.getBooks().size() == 0) {
+                final ProgressDialog progressDialog = new ProgressDialog(CategoryActivity.this);
+                progressDialog.setMessage("从云端下载数据中...");
+                progressDialog.show();
+                // 此方法会从云端下载 并 CategoryBeansCloud.getBooks().addAll(...)
+                Kernel.Data.cloudDownloadBooks(getApplicationContext(), categoryCloud.getName(), new StringCallback() {
+                    @Override
+                    public void onError(Call call, Exception e, int id) {
+                        progressDialog.cancel();
+                    }
 
-            startActivity(intent);
+                    @Override
+                    public void onResponse(String response, int id) {
+                        progressDialog.cancel();
+
+                        // > CategoryBeansCloud 设置到 CategoryBeanLocal
+                        CategoryBean cloudBean = Kernel.Data.CategoryBeansCloud.get(i);
+                        cloudBean.setBookEditStartIndex(cloudBean.getBooks().size() - 1);
+                        Kernel.Data.CategoryBeansLocal.add(i, cloudBean);
+                        startWorking(i);
+                    }
+                });
+            } else {
+                CategoryBean cloudBean = Kernel.Data.CategoryBeansCloud.get(i);
+                Kernel.Data.CategoryBeansLocal.set(i, cloudBean);
+                startWorking(i);
+            }
         }
 
         @Override
         public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-            final CategoryBean category = mCategoryBeans.get(i);
+            final CategoryBean category = mCategoryBeansCloud.get(i);
             if (!category.getCanDelete()) {
                 showMsg("若要删除该类目，请直接来告诉我");
                 return true;
@@ -191,6 +223,20 @@ public class CategoryActivity extends Activity {
 
             return true;
         }
+    }
+
+    /**
+     * 图书数据已准备好了 开始工作
+     */
+    public void startWorking(int categoryBeansLocalPosition) {
+        Intent intent = new Intent(CategoryActivity.this, SignupActivity.class);
+
+        // 传参
+        Bundle bundle = new Bundle();
+        bundle.putInt("CategoryBeansLocalPosition", categoryBeansLocalPosition);
+        intent.putExtras(bundle);
+
+        startActivity(intent);
     }
 
     // 再点一次退出程序时间设置
@@ -264,56 +310,24 @@ public class CategoryActivity extends Activity {
      * 云端数据下载
      */
     public void cloudCategoryDataDownload() {
-
         mAdapter.clear(); // 首先删除所有数据
 
-        if (Kernel.isNetworkAvailable(getApplicationContext())) {
-            // 显示加载
-            mLoadingProgress.setVisibility(View.VISIBLE);
-            // 下发请求指令
-            OkHttpUtils
-                    .get()
-                    .url(Kernel.URL_CATEGORY_RES)
-                    // .addParams("user", "")
-                    .addHeader("X-QWQ", "SchoolLibrarySignupTask")
-                    .build()
-                    .execute(new StringCallback() {
-                        @Override
-                        public void onError(Call call, Exception e, int id) {
-                            mLoadingProgress.setVisibility(View.GONE);
-                            showMsg("厉害了... 数据下载失败，请检查网络连接 \n" + e.getMessage());
-                        }
+        final ProgressDialog progressDialog = new ProgressDialog(CategoryActivity.this);
+        progressDialog.setMessage("从云端下载数据中...");
+        progressDialog.show();
 
-                        @Override
-                        public void onResponse(String response, int id) {
-                            mLoadingProgress.setVisibility(View.GONE);
-                            ArrayList<CategoryBean> categories = new ArrayList<CategoryBean>();
-                            try {
-                                JSONObject json = new JSONObject(response);
-                                if (!json.getBoolean("success")) {
-                                    showMsg(json.getString("msg"));
-                                    return;
-                                }
-                                String dataJsonArr = json.getString("data");
-                                categories = (new Gson()).fromJson(dataJsonArr, new TypeToken<ArrayList<CategoryBean>>() {}.getType());
-                                for (int i=0; i < categories.size(); i++) {
-                                    CategoryBean item = categories.get(i);
-                                    item.setCanDelete(false); // 不允许删除
-                                    item.setIsUpload(true); // 设置告知内容已在云端
-                                    categories.set(i, item);
-                                }
-                            } catch (Exception e) {
-                                showMsg("出现一个野生的错误\n" + e.getMessage());
-                                Log.e("请求云端数据下载", "出现错误", e);
-                            }
+        Kernel.Data.cloudDownloadCategoryList(getApplicationContext(), new StringCallback() {
+            @Override
+            public void onError(Call call, Exception e, int id) {
+                progressDialog.cancel();
+            }
 
-                            mAdapter.addAll(categories);
-                            Kernel.localSaveCategoryData();
-                        }
-                    });
-        } else {
-            showMsg("当前处于离线工作状态，无力从云端下载数据");
-        }
+            @Override
+            public void onResponse(String response, int id) {
+                progressDialog.cancel();
+                mAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     /**

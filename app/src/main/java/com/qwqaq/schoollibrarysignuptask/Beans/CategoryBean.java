@@ -11,10 +11,6 @@ import java.util.ArrayList;
 
 public class CategoryBean {
 
-    @SerializedName("id")
-    @Expose
-    private String id;
-
     // 类目名
     @SerializedName("name")
     @Expose
@@ -41,15 +37,7 @@ public class CategoryBean {
     private String createdAt;
 
     // 类目下的图书
-    private ArrayList<BookBean> mBooks;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
+    private ArrayList<BookBean> mBooks = new ArrayList<BookBean>();
 
     public String getName() {
         return name;
@@ -106,14 +94,14 @@ public class CategoryBean {
         this.mCanDelete = canDelete;
     }
 
-    // 内容是否上传
-    private boolean mIsUpload = false;
+    // 从哪本书开始编辑？
+    private int mBookEditStartIndex = 0;
 
-    public boolean getIsUpload() {
-        return mIsUpload;
+    public int getBookEditStartIndex() {
+        return mBookEditStartIndex;
     }
 
-    public void setIsUpload(boolean isUpload) {
-        this.mIsUpload = isUpload;
+    public void setBookEditStartIndex(int index) {
+        this.mBookEditStartIndex = index;
     }
 }

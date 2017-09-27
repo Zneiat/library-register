@@ -8,13 +8,9 @@ import com.google.gson.annotations.SerializedName;
  */
 public class BookBean {
 
-    @SerializedName("id")
-    @Expose
-    private String id;
-
     @SerializedName("numbering")
     @Expose
-    private String numbering;
+    private int numbering;
 
     @SerializedName("name")
     @Expose
@@ -36,19 +32,11 @@ public class BookBean {
     @Expose
     private String categoryId;
 
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getNumbering() {
+    public int getNumbering() {
         return numbering;
     }
 
-    public void setNumbering(String numbering) {
+    public void setNumbering(int numbering) {
         this.numbering = numbering;
     }
 
