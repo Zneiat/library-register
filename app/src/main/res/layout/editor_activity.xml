@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.qwqaq.schoollibrarysignuptask.Activities.SignupActivity">
+    tools:context="com.qwqaq.libraryregister.Activities.EditorActivity">
 
     <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
@@ -12,7 +12,7 @@
 
         <include layout="@layout/top_tool_bar_common" />
 
-        <include layout="@layout/signup_activity_content" />
+        <include layout="@layout/editor_activity_content" />
 
     </android.support.design.widget.CoordinatorLayout>
 

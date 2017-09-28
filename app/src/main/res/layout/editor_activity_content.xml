@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:showIn="@layout/signup_activity"
+    tools:showIn="@layout/editor_activity"
     android:background="@color/colorWhite">
 
     <ScrollView
@@ -16,7 +16,7 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true">
 
-        <include layout="@layout/signup_activity_form"
+        <include layout="@layout/editor_activity_form"
             android:id="@+id/work_area" />
 
     </ScrollView>

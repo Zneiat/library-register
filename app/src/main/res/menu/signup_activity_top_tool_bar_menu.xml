@@ -5,7 +5,7 @@
 
     <group android:id="@+id/normal_group">
         <item
-            android:id="@+id/action_display_books"
+            android:id="@+id/action_book_list"
             android:title="图书列表"
             android:icon="@drawable/ic_view_list_white_24dp"
             app:showAsAction="always" />
@@ -15,6 +15,11 @@
             android:title="保存"
             android:icon="@drawable/ic_save_white_24dp"
             app:showAsAction="always" />
+
+        <item
+            android:id="@+id/action_copy_book"
+            android:title="复制一本书"
+            app:showAsAction="never" />
 
     </group>
 </menu>

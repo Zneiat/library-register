@@ -1,4 +1,4 @@
-package com.qwqaq.schoollibrarysignuptask.Adapters;
+package com.qwqaq.libraryregister.Adapters;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -9,8 +9,8 @@ import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.qwqaq.schoollibrarysignuptask.Beans.CategoryBean;
-import com.qwqaq.schoollibrarysignuptask.R;
+import com.qwqaq.libraryregister.Beans.CategoryBean;
+import com.qwqaq.libraryregister.R;
 
 import java.util.ArrayList;
 

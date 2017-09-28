@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.qwqaq.schoollibrarysignuptask">
+    package="com.qwqaq.libraryregister">
 
     <!-- 权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application
-        android:name=".Kernel"
+        android:name="com.qwqaq.libraryregister.Kernel"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".Activities.CategoryActivity">
+        <activity android:name="com.qwqaq.libraryregister.Activities.CategoryActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -22,7 +22,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".Activities.SignupActivity">
+            android:name="com.qwqaq.libraryregister.Activities.EditorActivity">
         </activity>
     </application>
 

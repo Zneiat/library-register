@@ -1,4 +1,4 @@
-package com.qwqaq.schoollibrarysignuptask.Beans;
+package com.qwqaq.libraryregister.Beans;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

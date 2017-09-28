@@ -1,4 +1,4 @@
-package com.qwqaq.schoollibrarysignuptask.Beans;
+package com.qwqaq.libraryregister.Beans;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
@@ -23,10 +23,6 @@ public class BookBean {
     @SerializedName("remarks")
     @Expose
     private String remarks;
-
-    @SerializedName("registrar_name")
-    @Expose
-    private String registrarName;
 
     @SerializedName("category_id")
     @Expose
@@ -62,14 +58,6 @@ public class BookBean {
 
     public void setRemarks(String remarks) {
         this.remarks = remarks;
-    }
-
-    public String getRegistrarName() {
-        return registrarName;
-    }
-
-    public void setRegistrarName(String registrarName) {
-        this.registrarName = registrarName;
     }
 
     public String getCategoryId() {

@@ -1,4 +1,4 @@
-package com.qwqaq.schoollibrarysignuptask.Utils;
+package com.qwqaq.libraryregister.Utils;
 
 import android.content.Context;
 import android.view.View;

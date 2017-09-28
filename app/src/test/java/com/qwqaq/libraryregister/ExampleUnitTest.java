@@ -1,4 +1,4 @@
-package com.qwqaq.schoollibrarysignuptask;
+package com.qwqaq.libraryregister;
 
 import org.junit.Test;
 
