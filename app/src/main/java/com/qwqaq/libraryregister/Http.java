@@ -29,7 +29,7 @@ public class Http {
     public Http(Context context) {
         mContext = context;
 
-        if (!Kernel.isNetworkAvailable(mContext)) {
+        if (!App.isNetworkAvailable(mContext)) {
             Toast.makeText(mContext, "网络未连接，无法与世界连接", Toast.LENGTH_LONG).show();
             return;
         }
@@ -45,7 +45,7 @@ public class Http {
      * 下载 类目列表
      */
     public void downloadCategory(final StringCallback callbackEvents) {
-        if (!Kernel.isNetworkAvailable(mContext)) return;
+        if (!App.isNetworkAvailable(mContext)) return;
 
         OkHttpUtils
                 .get()
@@ -81,14 +81,14 @@ public class Http {
                         }
 
                         // 内存原来的数据全部清空
-                        Kernel.Data.Basic.clear();
-                        Kernel.Data.Local.clear();
+                        App.Data.Basic.clear();
+                        App.Data.Local.clear();
 
                         // 保存到内存
-                        Kernel.Data.Basic.addAll(categories);
+                        App.Data.Basic.addAll(categories);
 
                         // 保存到存储空间
-                        Kernel.Data.dataPrefStore();
+                        App.Data.dataPrefStore();
 
                         callbackEvents.onResponse(response, id);
                     }
@@ -106,7 +106,7 @@ public class Http {
      * 下载单个类目图书
      */
     public void downloadBook(final Context context, final String categoryName, final StringCallback callbackEvents) {
-        if (!Kernel.isNetworkAvailable(context)) return;
+        if (!App.isNetworkAvailable(context)) return;
 
         OkHttpUtils
                 .get()
@@ -141,16 +141,20 @@ public class Http {
                         }
 
                         // 保存到内存
-                        for (CategoryBean item : Kernel.Data.Basic) {
+                        for (CategoryBean item : App.Data.Basic) {
                             if (item.getName().equals(categoryName)) {
                                 item.getBooks().clear();
                                 item.getBooks().addAll(books);
+                                if (books.size() > 0) {
+                                    // 将最后一个项目作为开始编辑的第一个项目（编辑进度修改）
+                                    item.setBookEditStartIndex(books.size() - 1);
+                                }
                                 break;
                             }
                         }
 
                         // 保存到存储空间
-                        Kernel.Data.dataPrefStore();
+                        App.Data.dataPrefStore();
 
                         callbackEvents.onResponse(response, id);
                     }
@@ -168,11 +172,11 @@ public class Http {
      * 上传数据
      */
     public void updateBook(final Context context, final StringCallback callbackEvents) {
-        if (!Kernel.isNetworkAvailable(context)) return;
+        if (!App.isNetworkAvailable(context)) return;
 
         // Local Books
         HashMap<String, ArrayList<BookBean>> books = new HashMap<String, ArrayList<BookBean>>();
-        for (final CategoryBean itemCategory : Kernel.Data.Local.values())
+        for (final CategoryBean itemCategory : App.Data.Local.values())
             books.put(itemCategory.getName(), itemCategory.getBooks());
 
         String booksJson = (new Gson()).toJson(books);
@@ -181,7 +185,7 @@ public class Http {
         OkHttpUtils
                 .post()
                 .url(URL_UPLOAD)
-                .addParams("registrar_name", Kernel.Data.getRegistrarName())
+                .addParams("registrar_name", App.Data.getRegistrarName())
                 .addParams("book_data", booksJson)
                 .addHeader("X-QWQ", "SchoolLibrarySignupTask")
                 .build()
@@ -198,15 +202,15 @@ public class Http {
                         resp.makeMsgToast();
 
                         // 清空 Local
-                        Kernel.Data.Local.clear();
+                        App.Data.Local.clear();
 
                         // 所有 Basic 项目设置为禁止删除
-                        for (CategoryBean item : Kernel.Data.Basic) {
+                        for (CategoryBean item : App.Data.Basic) {
                             item.setCanDelete(false);
                         }
 
                         // 保存到存储空间
-                        Kernel.Data.dataPrefStore();
+                        App.Data.dataPrefStore();
 
                         callbackEvents.onResponse(response, id);
                     }

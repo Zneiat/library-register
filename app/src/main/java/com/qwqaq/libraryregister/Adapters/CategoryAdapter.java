@@ -26,7 +26,7 @@ public class CategoryAdapter extends ArrayAdapter<CategoryBean> {
 
     private static class ViewHolder {
         TextView name;
-        TextView desc;
+        TextView registrarName;
     }
 
     @Override
@@ -40,7 +40,7 @@ public class CategoryAdapter extends ArrayAdapter<CategoryBean> {
             LayoutInflater inflater = LayoutInflater.from(getContext());
             convertView = inflater.inflate(R.layout.category_list_item, parent, false);
             viewHolder.name = (TextView) convertView.findViewById(R.id.category_name);
-            viewHolder.desc = (TextView) convertView.findViewById(R.id.category_desc);
+            viewHolder.registrarName = (TextView) convertView.findViewById(R.id.category_registrar_name);
             // Cache the viewHolder object inside the fresh view
             convertView.setTag(viewHolder);
         } else {
@@ -54,8 +54,8 @@ public class CategoryAdapter extends ArrayAdapter<CategoryBean> {
 
         view.inflate(R.layout.category_list_item, listItem, true);
 
-        viewHolder.name.setText(bean.getName() + " 类书籍");
-        viewHolder.desc.setText(bean.getRegistrarName());
+        viewHolder.name.setText(bean.getName());
+        viewHolder.registrarName.setText(bean.getRegistrarName());
         return convertView;
     }
 }

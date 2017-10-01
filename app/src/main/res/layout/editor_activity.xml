@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.qwqaq.libraryregister.Activities.EditorActivity">
+    tools:context=".Activities.EditorActivity">
 
     <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
@@ -12,9 +12,10 @@
 
         <include layout="@layout/top_tool_bar_common" />
 
-        <include layout="@layout/editor_activity_content" />
+        <include
+            android:id="@+id/content_area"
+            layout="@layout/editor_activity_content" />
 
     </android.support.design.widget.CoordinatorLayout>
 
-
-</android.support.constraint.ConstraintLayout>
+</RelativeLayout>

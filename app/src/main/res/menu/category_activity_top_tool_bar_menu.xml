@@ -6,7 +6,7 @@
     <group android:id="@+id/normal_group">
 
         <item
-            android:id="@+id/action_add"
+            android:id="@+id/action_create"
             android:title="新建类目"
             app:showAsAction="never" />
 

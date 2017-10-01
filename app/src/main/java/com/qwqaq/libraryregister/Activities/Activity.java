@@ -1,15 +1,24 @@
 package com.qwqaq.libraryregister.Activities;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
 
+import com.qwqaq.libraryregister.App;
 import com.qwqaq.libraryregister.R;
+import com.qwqaq.libraryregister.Utils.DisplayUtil;
 
 
 /**
@@ -29,10 +38,13 @@ public abstract class Activity extends AppCompatActivity {
     |--------------------------------------------------------------------------
     */
 
+    protected View mContentArea;
     protected Toolbar mTopToolBar; // 顶部工具条
 
     protected void initView(int layoutResID) {
         setContentView(layoutResID);
+
+        mContentArea = findViewById(R.id.content_area);
         // init TopToolBar
         mTopToolBar = (Toolbar) findViewById(R.id.top_tool_bar);
         setSupportActionBar(mTopToolBar);
@@ -65,5 +77,68 @@ public abstract class Activity extends AppCompatActivity {
         int id = item.getItemId();
 
         return true;
+    }
+
+    /**
+     * 显示一条消息
+     */
+    protected void showMsg(String msg) {
+        Snackbar.make(mContentArea, msg, Snackbar.LENGTH_LONG).show();
+    }
+
+    /**
+     * 显示 是或否 确认对话框
+     */
+    protected void showConfirm(String title, String msg, DialogInterface.OnClickListener listener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        if (title != null && title.trim().length() > 0) {
+            builder.setTitle(title.trim());
+        }
+        builder.setMessage(msg.trim());
+        builder.setPositiveButton("确定", listener);
+        builder.setNegativeButton("取消", null);
+        builder.show();
+    }
+
+    /**
+     * 带文本编辑的对话框
+     */
+    protected class TextEditDialog extends AlertDialog.Builder {
+        private EditText mEditTextView;
+
+        public TextEditDialog(Context context, String title, String msg) {
+            super(context);
+
+            if (title.trim().length() > 0)
+                this.setTitle(title);
+            if (msg.trim().length() > 0)
+                this.setMessage(msg);
+
+            // EditTextView
+            int leftRightPadding = DisplayUtil.dipToPx(getApplicationContext(), 20);
+            int topBottomPadding = DisplayUtil.dipToPx(getApplicationContext(), 10);
+            mEditTextView = new EditText(context);
+            mEditTextView.setSingleLine(true);
+            mEditTextView.setGravity(Gravity.CENTER);
+            this.setView(mEditTextView, leftRightPadding, topBottomPadding, leftRightPadding, topBottomPadding);
+
+            this.setNegativeButton("取消", null);
+
+        }
+
+        public void setPositiveButton(DialogInterface.OnClickListener listener) {
+            this.setPositiveButton("完毕", listener);
+        }
+
+        public EditText getEditTextView() {
+            return mEditTextView;
+        }
+
+        public String getText() {
+            if (mEditTextView != null) {
+                return mEditTextView.getText().toString().trim();
+            }
+            return "";
+        }
     }
 }

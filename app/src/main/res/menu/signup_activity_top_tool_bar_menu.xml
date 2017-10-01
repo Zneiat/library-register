@@ -5,20 +5,30 @@
 
     <group android:id="@+id/normal_group">
         <item
-            android:id="@+id/action_book_list"
+            android:id="@+id/action_go_edit"
+            android:title="开始编辑"
+            android:icon="@drawable/ic_keyboard_white_24dp"
+            app:showAsAction="always" />
+
+        <item
+            android:id="@+id/action_redirect_book"
             android:title="图书列表"
             android:icon="@drawable/ic_view_list_white_24dp"
             app:showAsAction="always" />
 
         <item
-            android:id="@+id/action_save"
-            android:title="保存"
-            android:icon="@drawable/ic_save_white_24dp"
-            app:showAsAction="always" />
+            android:id="@+id/action_copy_pre_book"
+            android:title="复制前一本书"
+            app:showAsAction="never" />
 
         <item
             android:id="@+id/action_copy_book"
-            android:title="复制一本书"
+            android:title="复制某本书"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/action_current_del_all"
+            android:title="清除本书字段"
             app:showAsAction="never" />
 
     </group>

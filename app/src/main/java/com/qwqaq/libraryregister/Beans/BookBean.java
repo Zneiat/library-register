@@ -24,9 +24,9 @@ public class BookBean {
     @Expose
     private String remarks;
 
-    @SerializedName("category_id")
+    @SerializedName("category_name")
     @Expose
-    private String categoryId;
+    private String categoryName;
 
     public int getNumbering() {
         return numbering;
@@ -60,12 +60,12 @@ public class BookBean {
         this.remarks = remarks;
     }
 
-    public String getCategoryId() {
-        return categoryId;
+    public String getCategoryName() {
+        return categoryName;
     }
 
-    public void setCategoryId(String categoryId) {
-        this.categoryId = categoryId;
+    public void setCategoryName(String categoryId) {
+        this.categoryName = categoryId;
     }
 
 }

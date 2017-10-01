@@ -26,7 +26,7 @@ public class CategoryBean {
     @Expose
     private Object remarks;
 
-    // 更新日期
+    // TODO: 更新日期
     @SerializedName("update_at")
     @Expose
     private String updateAt;

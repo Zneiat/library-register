@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.qwqaq.libraryregister.Beans.BookBean;
 import com.qwqaq.libraryregister.Beans.CategoryBean;
 import com.zhy.http.okhttp.OkHttpUtils;
 
@@ -23,7 +24,7 @@ import okhttp3.OkHttpClient;
  * Created by Zneia on 2017/4/16.
  */
 
-public class Kernel extends Application {
+public class App extends Application {
 
     // Preferences
     public static SharedPreferences QWQ_PREF;
@@ -140,6 +141,17 @@ public class Kernel extends Application {
          */
         public static void setRegistrarName(String value) {
             QWQ_PREF.edit().putString(PrefKeyRegistrarName, value).apply();
+        }
+
+        /**
+         * 克隆 Category Bean
+         */
+        public static CategoryBean categoryBeanClone(CategoryBean origin) {
+            // 原始数据转 JSON
+            String json = (new Gson()).toJson(origin);
+            // JSON 转 对象
+            CategoryBean afterObj = (new Gson()).fromJson(json, new TypeToken<CategoryBean>() {}.getType());
+            return afterObj;
         }
     }
 
