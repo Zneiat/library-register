@@ -1,30 +1,44 @@
 package com.qwqaq.libraryregister.Activities;
 
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AlertDialog;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
+import android.text.Html;
+import android.util.Base64;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.qwqaq.libraryregister.Adapters.CategoryAdapter;
 import com.qwqaq.libraryregister.App;
 import com.qwqaq.libraryregister.Beans.BookBean;
 import com.qwqaq.libraryregister.Beans.CategoryBean;
 import com.qwqaq.libraryregister.Http;
-import com.qwqaq.libraryregister.Utils.DisplayUtil;
 import com.qwqaq.libraryregister.R;
+import com.qwqaq.libraryregister.Utils.StringEscapeUtil;
 import com.zhy.http.okhttp.callback.StringCallback;
-
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.zhy.http.okhttp.utils.Exceptions;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 
 import okhttp3.Call;
 
@@ -33,9 +47,26 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     private ListView mListView;
     private CategoryAdapter mAdapter;
 
+    public static final int EDITOR_ACTIVITY_CODE = 601;
+    public static final int JSON_EDITOR_ACTIVITY_CODE = 602;
+
+    // 用于存放 CSV 表格的目录路径
+    public static final String CSV_DATA_DIR_PATH = "/QwqBookRegister";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 权限 检测/申请
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            // 申请 WRITE_EXTERNAL_STORAGE 权限
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+        }
+
+        // 若还未设置登记员名字
+        if (App.Data.getRegistrarName().equals("")) {
+            showRegistrarNameEditDialog();
+        }
 
         initView(R.layout.category_activity);
     }
@@ -43,11 +74,6 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     @Override
     protected void initView(int layoutResID) {
         super.initView(layoutResID);
-
-        // 若还未设置登记员名字
-        if (App.Data.getRegistrarName().equals("")) {
-            showRegistrarNameEditDialog();
-        }
 
         mListView = (ListView) findViewById(R.id.category_list_view);
         mAdapter = new CategoryAdapter(this, App.Data.Basic);
@@ -101,24 +127,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     @Override
     public boolean onItemLongClick(AdapterView<?> adapterView, View view, final int i, long l) {
 
-        final CategoryBean category = App.Data.Basic.get(i);
-        if (!category.getCanDelete()) {
-            showMsg("若要删除该类目，请直接来跟我讲");
-            return true;
-        }
-
-        showConfirm("删除图书类目", "是否确定删除该类图书？", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (App.Data.Local.containsKey(category.getName())) {
-                    App.Data.Local.remove(category.getName());
-                }
-                App.Data.Basic.remove(i);
-                mAdapter.notifyDataSetChanged();
-                App.Data.dataPrefStore();
-                showMsg("类目 " + category.getName() + " 删除成功");
-            }
-        });
+        displayCategoryActionsDialog(i);
 
         return true;
     }
@@ -135,14 +144,13 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         bundle.putInt("DataBasicIndex", categoryBeansLocalPosition);
         intent.putExtras(bundle);
 
-        startActivity(intent);
+        startActivityForResult(intent, EDITOR_ACTIVITY_CODE);
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
         getMenuInflater().inflate(R.menu.category_activity_top_tool_bar_menu, menu);
+        super.onCreateOptionsMenu(menu);
         return true;
     }
 
@@ -171,6 +179,9 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         }
         if (id == R.id.action_edit_registrar_name) {
             showRegistrarNameEditDialog();
+        }
+        if (id == R.id.action_json_editor) {
+            actionStartJsonEditor();
         }
 
         return true;
@@ -255,6 +266,33 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     }
 
     /**
+     * 删除一个类目
+     */
+    private void deleteCategory(final int categoryIndex) {
+        final CategoryBean category = App.Data.Basic.get(categoryIndex);
+
+        showConfirm("删除图书类目", "是否确定删除该类图书？", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (!category.getRegistrarName().equals(App.Data.getRegistrarName())) {
+                    showMsg("对该类目下手... 你做不到");return;
+                }
+                if (!category.getCanDelete()) {
+                    showMsg("因该类目已上传到云端，若需删除该类目，可向我报告");return;
+                }
+
+                if (App.Data.Local.containsKey(category.getName())) {
+                    App.Data.Local.remove(category.getName());
+                }
+                App.Data.Basic.remove(categoryIndex);
+                mAdapter.notifyDataSetChanged();
+                App.Data.dataPrefStore();
+                showMsg("类目 " + category.getName() + " 删除成功");
+            }
+        });
+    }
+
+    /**
      * 下载云端类目数据（不含图书的）
      */
     public void actionCloudCategoryDataDownload() {
@@ -301,6 +339,146 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         });
     }
 
+    /**
+     * 手动控制数据，JSON 编辑器
+     */
+    public void actionStartJsonEditor() {
+        Intent intent = new Intent(CategoryActivity.this, JsonEditorActivity.class);
+
+        // 传参
+        Bundle bundle = new Bundle();
+        intent.putExtras(bundle);
+
+        startActivityForResult(intent, JSON_EDITOR_ACTIVITY_CODE);
+    }
+
+    /**
+     * 构建一个类目的 CSV 表格数据
+     */
+    private File buildCategoryBookCsvData(final int categoryIndex) throws Exception {
+        CategoryBean category = App.Data.Basic.get(categoryIndex);
+        File dir = new File(Environment.getExternalStorageDirectory(), CSV_DATA_DIR_PATH);
+        if (!dir.exists() && !dir.mkdirs())
+            throw new Exception("无法创建目录");
+        File file = new File(dir, "/" + category.getName() + "类图书.csv");
+        if (file.exists() && !file.delete())
+            throw new Exception("无法删除原来的文件");
+        if (!file.exists() && !file.createNewFile())
+            throw new Exception("无法创建文件");
+        OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file, true), "GBK");
+        writer.write(App.Data.dataBasicBookDataToCsvStr(categoryIndex));
+        writer.close();
+        return file;
+    }
+
+    /**
+     * 用其他 APP 打开类目 CSV 文件
+     */
+    private void openCategoryCsv(final int categoryIndex) {
+        CategoryBean category = App.Data.Basic.get(categoryIndex);
+        if (category.getBooks() == null || category.getBooks().size() < 1) {
+            showMsg("该类目没有图书数据，无法生成表格文档");
+            return;
+        }
+
+        File file;
+        try {
+            file = buildCategoryBookCsvData(categoryIndex);
+        } catch (Exception e) {
+            Log.d("", "", e);
+            showMsg("Emm... 文件准备失败... 无法分享");
+            return;
+        }
+        // 打开
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Uri uri = FileProvider.getUriForFile(getApplicationContext(), getPackageName() + ".provider", file);
+        intent.setDataAndType(uri, "text/*");
+        startActivity(Intent.createChooser(intent, "选择 APP 打开表格文档"));
+    }
+
+    /**
+     * 分享类目 CSV 文件
+     */
+    private void shareCategoryCsv(final int categoryIndex) {
+        CategoryBean category = App.Data.Basic.get(categoryIndex);
+        if (category.getBooks() == null || category.getBooks().size() < 1) {
+            showMsg("该类目没有图书数据，无法生成表格文档");
+            return;
+        }
+
+        File file;
+        try {
+            file = buildCategoryBookCsvData(categoryIndex);
+        } catch (Exception e) {
+            Log.d("", "", e);
+            showMsg("Emm... 文件准备失败... 无法分享");
+            return;
+        }
+        // 调用分享
+        Intent sharingIntent = new Intent(Intent.ACTION_SEND);
+        sharingIntent.setType("text/*");
+        Uri uri = FileProvider.getUriForFile(getApplicationContext(), getPackageName() + ".provider", file);
+        sharingIntent.putExtra(Intent.EXTRA_STREAM, uri);
+        startActivity(Intent.createChooser(sharingIntent, "分享到"));
+    }
+
+    /**
+     * 显示类目操作对话框
+     */
+    public void displayCategoryActionsDialog(final int categoryIndex) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        /*LayoutInflater inflater = LayoutInflater.from(this);
+        View layout = inflater.inflate(R.layout.category_actions_dialog, null);
+        builder.setView(layout);*/
+
+        final CategoryBean category = App.Data.Basic.get(categoryIndex);
+
+        builder.setTitle("你想对 ‘类目 " + category.getName() + "’ 做什么？");
+        builder.setItems(new String[]{"用其他 APP 打开", "作为文件分享", "删除"}, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                switch (i) {
+                    case 0:
+                        openCategoryCsv(categoryIndex);
+                        break;
+                    case 1:
+                        shareCategoryCsv(categoryIndex);
+                        break;
+                    case 2:
+                        deleteCategory(categoryIndex);
+                        break;
+                }
+            }
+        });
+        builder.show();
+    }
+
+    /**
+     * Activity 结束，获取响应结果
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case EDITOR_ACTIVITY_CODE:
+                if (resultCode == EditorActivity.RESULT_CODE_SAVED) {
+                    String msg = data.getStringExtra("ResultMessage");
+                    if (msg != null && msg.length() > 0) showMsg(msg);
+                    mAdapter.notifyDataSetChanged();
+                }
+                break;
+
+            case JSON_EDITOR_ACTIVITY_CODE:
+                mAdapter.notifyDataSetChanged();
+
+            default:
+                break;
+        }
+    }
+
     // 再点一次退出程序时间设置
     private static final long WAIT_TIME = 2000L;
     private long TOUCH_TIME = 0;
@@ -312,7 +490,18 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
             this.finish();
         } else {
             TOUCH_TIME = System.currentTimeMillis();
-            showMsg("再使劲摁一次二话不说就离家出走");
+            showMsg("再使劲摁一次二话不说离家出走");
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 0) {
+            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "QAQ 未获得存储权限将，程序无法运行呐~", Toast.LENGTH_LONG).show();
+                finish();
+            }
         }
     }
 }

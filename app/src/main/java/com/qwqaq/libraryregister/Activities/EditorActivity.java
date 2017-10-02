@@ -1,6 +1,7 @@
 package com.qwqaq.libraryregister.Activities;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
@@ -45,6 +46,10 @@ public class EditorActivity extends Activity {
     private TextInputEditText mInputRemarks;
     private Button btnBookPre;
     private Button btnBookNxt;
+
+    // Activity 返回结果 CODE
+    public static final int RESULT_CODE_UNMODIFIED = 1;
+    public static final int RESULT_CODE_SAVED = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -259,6 +264,7 @@ public class EditorActivity extends Activity {
     public void editExit() {
         if (!mIsEditing) {
             // 不处于编辑状态，不保存
+            setResult(RESULT_CODE_UNMODIFIED);
             finish();
             return;
         }
@@ -271,7 +277,9 @@ public class EditorActivity extends Activity {
             @Override
             public void onClick(DialogInterface arg0, int arg1) {
                 saveWorkCategory();
-                Toast.makeText(getApplicationContext(), getCategoryName() + " 类数据保存成功", Toast.LENGTH_LONG).show();
+                Intent intent = new Intent();
+                intent.putExtra("ResultMessage", getCategoryName() + " 类数据保已保存");
+                setResult(RESULT_CODE_SAVED, intent);
                 finish();
             }
         });
@@ -282,6 +290,7 @@ public class EditorActivity extends Activity {
                 showConfirm(null, "真的不保存？", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        setResult(RESULT_CODE_UNMODIFIED);
                         finish();
                     }
                 });
@@ -302,10 +311,8 @@ public class EditorActivity extends Activity {
     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-
         getMenuInflater().inflate(R.menu.signup_activity_top_tool_bar_menu, menu);
-
+        super.onCreateOptionsMenu(menu);
         return true;
     }
 

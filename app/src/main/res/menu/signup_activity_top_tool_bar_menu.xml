@@ -28,7 +28,7 @@
 
         <item
             android:id="@+id/action_current_del_all"
-            android:title="清除本书字段"
+            android:title="清空本书内容"
             app:showAsAction="never" />
 
     </group>

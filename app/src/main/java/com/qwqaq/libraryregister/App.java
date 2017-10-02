@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.qwqaq.libraryregister.Beans.BookBean;
 import com.qwqaq.libraryregister.Beans.CategoryBean;
+import com.qwqaq.libraryregister.Utils.StringEscapeUtil;
 import com.zhy.http.okhttp.OkHttpUtils;
 
 import java.util.ArrayList;
@@ -126,6 +127,22 @@ public class App extends Application {
         public static void dataLocalPrefStore() {
             String json = (new Gson()).toJson(Local);
             QWQ_PREF.edit().putString(PrefKeyLocal, json).apply();
+        }
+
+        public static String dataBasicBookDataToCsvStr(int categoryIndex) {
+            CategoryBean category = Basic.get(categoryIndex);
+            String str = "类目,索引号,书名,出版社,备注,登记员";
+            for (BookBean bookItem : category.getBooks()) {
+                str += "\n";
+                str += StringEscapeUtil.escapeCSV(category.getName()) + ",";
+                str += StringEscapeUtil.escapeCSV(""+bookItem.getNumbering()) + ",";
+                str += StringEscapeUtil.escapeCSV(bookItem.getName()) + ",";
+                str += StringEscapeUtil.escapeCSV(bookItem.getPress()) + ",";
+                str += StringEscapeUtil.escapeCSV(bookItem.getRemarks()) + ",";
+                str += StringEscapeUtil.escapeCSV(category.getRegistrarName());
+            }
+
+            return str;
         }
 
         /**

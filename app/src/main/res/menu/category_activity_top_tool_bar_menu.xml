@@ -5,25 +5,29 @@
 
     <group android:id="@+id/normal_group">
 
-        <item
-            android:id="@+id/action_create"
+        <item android:id="@+id/action_create"
+            android:icon="@drawable/ic_add_white_24dp"
             android:title="新建类目"
-            app:showAsAction="never" />
+            app:showAsAction="always" />
 
-        <item
-            android:id="@+id/action_upload"
+        <item android:id="@+id/action_upload"
             android:title="上传数据"
             app:showAsAction="never" />
 
-        <item
-            android:id="@+id/action_download"
-            android:title="下载数据"
-            app:showAsAction="never" />
+        <item android:title="更多操作"
+            app:showAsAction="never">
+            <menu>
+                <item android:id="@+id/action_download"
+                    android:title="下载数据" />
+                <item android:id="@+id/action_edit_registrar_name"
+                    android:title="修改你的名字" />
+                <item android:id="@+id/action_json_editor"
+                    android:title="数据手动编辑" />
+            </menu>
+        </item>
 
-        <item
-            android:id="@+id/action_edit_registrar_name"
-            android:title="修改你的名字"
-            app:showAsAction="never" />
+        <item android:id="@+id/action_about"
+            android:title="关于 APP" />
 
     </group>
 </menu>
