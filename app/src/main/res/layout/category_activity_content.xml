@@ -7,9 +7,10 @@
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:showIn="@layout/category_activity"
-    android:background="@color/bgGray">
+    android:background="@color/colorWhite">
 
-    <android.support.design.widget.CoordinatorLayout
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignParentTop="true"
@@ -22,6 +23,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-    </android.support.design.widget.CoordinatorLayout>
+    </LinearLayout>
 
 </RelativeLayout>

@@ -1,4 +1,4 @@
-package com.qwqaq.libraryregister.Utils;
+package com.qwqaq.libraryregister.utils;
 
 /**
  * Created by Zneia on 2017/10/2.

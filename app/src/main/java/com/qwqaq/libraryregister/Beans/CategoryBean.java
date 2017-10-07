@@ -1,4 +1,4 @@
-package com.qwqaq.libraryregister.Beans;
+package com.qwqaq.libraryregister.beans;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
@@ -36,8 +36,8 @@ public class CategoryBean {
     @Expose
     private String createdAt;
 
-    // 类目下的图书
-    private ArrayList<BookBean> mBooks = new ArrayList<BookBean>();
+    /** @link https://howtoprogram.xyz/2016/10/16/ignore-or-exclude-field-in-gson/ */
+    private ArrayList<BookBean> books = new ArrayList<BookBean>();
 
     public String getName() {
         return name;
@@ -79,12 +79,13 @@ public class CategoryBean {
         this.createdAt = createdAt;
     }
 
+    // 获取类目下的图书
     public ArrayList<BookBean> getBooks() {
-        return mBooks;
+        return books;
     }
 
     // 是否可删除
-    private boolean mCanDelete = true;
+    private boolean mCanDelete = false;
 
     public boolean getCanDelete() {
         return mCanDelete;

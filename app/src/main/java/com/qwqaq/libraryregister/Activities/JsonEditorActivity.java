@@ -1,4 +1,4 @@
-package com.qwqaq.libraryregister.Activities;
+package com.qwqaq.libraryregister.activities;
 
 import android.os.Bundle;
 import android.view.Menu;
@@ -9,9 +9,9 @@ import android.widget.EditText;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.qwqaq.libraryregister.App;
-import com.qwqaq.libraryregister.Beans.CategoryBean;
+import com.qwqaq.libraryregister.beans.CategoryBean;
 import com.qwqaq.libraryregister.R;
-import com.qwqaq.libraryregister.Utils.JsonFormatUtil;
+import com.qwqaq.libraryregister.utils.JsonFormatUtil;
 
 import java.util.HashMap;
 
@@ -24,7 +24,7 @@ public class JsonEditorActivity extends Activity {
         super.onCreate(savedInstanceState);
         initView(R.layout.json_editor_activity);
 
-        mDataEditText = (EditText)findViewById(R.id.data_edit_text);
+        mDataEditText = (EditText) findViewById(R.id.data_edit_text);
 
         JsonFormatUtil json = new JsonFormatUtil();
         String jsonStr = (new Gson()).toJson(App.Data.Local);

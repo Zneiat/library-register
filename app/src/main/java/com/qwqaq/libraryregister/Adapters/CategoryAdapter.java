@@ -1,4 +1,4 @@
-package com.qwqaq.libraryregister.Adapters;
+package com.qwqaq.libraryregister.adapters;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -11,7 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.qwqaq.libraryregister.App;
-import com.qwqaq.libraryregister.Beans.CategoryBean;
+import com.qwqaq.libraryregister.beans.CategoryBean;
 import com.qwqaq.libraryregister.R;
 
 import java.util.ArrayList;

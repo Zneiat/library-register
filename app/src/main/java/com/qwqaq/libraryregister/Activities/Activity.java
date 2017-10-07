@@ -1,4 +1,4 @@
-package com.qwqaq.libraryregister.Activities;
+package com.qwqaq.libraryregister.activities;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,9 +16,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 
-import com.qwqaq.libraryregister.App;
 import com.qwqaq.libraryregister.R;
-import com.qwqaq.libraryregister.Utils.DisplayUtil;
+import com.qwqaq.libraryregister.utils.DisplayUtil;
 
 
 /**
@@ -127,7 +126,7 @@ public abstract class Activity extends AppCompatActivity {
         }
 
         public void setPositiveButton(DialogInterface.OnClickListener listener) {
-            this.setPositiveButton("完毕", listener);
+            this.setPositiveButton("好啦", listener);
         }
 
         public EditText getEditTextView() {

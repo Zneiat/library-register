@@ -5,16 +5,19 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.support.annotation.NonNull;
+import android.support.v4.content.FileProvider;
 import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.qwqaq.libraryregister.Beans.BookBean;
-import com.qwqaq.libraryregister.Beans.CategoryBean;
-import com.qwqaq.libraryregister.Utils.StringEscapeUtil;
+import com.qwqaq.libraryregister.beans.BookBean;
+import com.qwqaq.libraryregister.beans.CategoryBean;
+import com.qwqaq.libraryregister.utils.StringEscapeUtil;
 import com.zhy.http.okhttp.OkHttpUtils;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
@@ -170,6 +173,13 @@ public class App extends Application {
             CategoryBean afterObj = (new Gson()).fromJson(json, new TypeToken<CategoryBean>() {}.getType());
             return afterObj;
         }
+    }
+
+    /**
+     * 获取 File 的 Uri
+     */
+    public static Uri getUriForFile(Context context, File file) {
+        return FileProvider.getUriForFile(context, "com.qwqaq.libraryregister.provider", file);
     }
 
     /**

@@ -1,29 +1,21 @@
-package com.qwqaq.libraryregister.Activities;
+package com.qwqaq.libraryregister.activities;
 
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
 import android.support.v7.app.AlertDialog;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.qwqaq.libraryregister.Beans.BookBean;
-import com.qwqaq.libraryregister.Beans.CategoryBean;
+import com.qwqaq.libraryregister.beans.BookBean;
+import com.qwqaq.libraryregister.beans.CategoryBean;
 import com.qwqaq.libraryregister.App;
 import com.qwqaq.libraryregister.R;
-import com.qwqaq.libraryregister.Utils.SoftInputUtil;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class EditorActivity extends Activity {
 

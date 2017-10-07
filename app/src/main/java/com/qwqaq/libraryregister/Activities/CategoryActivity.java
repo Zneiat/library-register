@@ -1,20 +1,19 @@
-package com.qwqaq.libraryregister.Activities;
+package com.qwqaq.libraryregister.activities;
 
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
-import android.text.Html;
-import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -22,30 +21,29 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.qwqaq.libraryregister.Adapters.CategoryAdapter;
+import com.qwqaq.libraryregister.adapters.CategoryAdapter;
 import com.qwqaq.libraryregister.App;
-import com.qwqaq.libraryregister.Beans.BookBean;
-import com.qwqaq.libraryregister.Beans.CategoryBean;
+import com.qwqaq.libraryregister.beans.BookBean;
+import com.qwqaq.libraryregister.beans.CategoryBean;
 import com.qwqaq.libraryregister.Http;
 import com.qwqaq.libraryregister.R;
-import com.qwqaq.libraryregister.Utils.StringEscapeUtil;
 import com.zhy.http.okhttp.callback.StringCallback;
-import com.zhy.http.okhttp.utils.Exceptions;
+
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.Calendar;
+import java.util.Date;
 
 import okhttp3.Call;
 
 public class CategoryActivity extends Activity implements AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
 
-    private ListView mListView;
-    private CategoryAdapter mAdapter;
+    public ListView mListView;
+    public CategoryAdapter mAdapter;
 
     public static final int EDITOR_ACTIVITY_CODE = 601;
     public static final int JSON_EDITOR_ACTIVITY_CODE = 602;
@@ -82,6 +80,31 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         mListView.setOnItemLongClickListener(this);
 
         mListView.setAdapter(mAdapter);
+
+        dataEmptyCheck();
+    }
+
+    // 离线提醒
+    private boolean offlineNotification = true;
+
+    /**
+     * 数据为空检测
+     */
+    private void dataEmptyCheck() {
+        // 数据为空，但是网络可以用
+        if (!App.isNetworkAvailable(this) && offlineNotification) {
+            Snackbar.make(mContentArea, "离线状态，相关云端操作已禁用", Snackbar.LENGTH_LONG)
+                    .setAction("不再提醒", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            offlineNotification = false;
+                        }
+                    }).show();
+        }
+        if (App.Data.Basic.size() < 1 && App.isNetworkAvailable(this)) {
+            showMsg("看起来似乎什么都没有呀~\n正在从云端下载数据");
+            cloudGetCategories();
+        }
     }
 
     /**
@@ -90,35 +113,33 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l) {
         final CategoryBean category = App.Data.Basic.get(i);
+        int categorySize = category.getBooks().size();
+        boolean isMine = category.getRegistrarName().trim().equals(App.Data.getRegistrarName().trim());
 
-        if (category.getBooks().size() == 0) {
-            /*
-             * 云端获取图书数据
-             */
-            final ProgressDialog progressDialog = new ProgressDialog(CategoryActivity.this);
-            progressDialog.setMessage("从云端下载数据中...");
-            progressDialog.show();
-            // 从云端下载 并 App.Data.Basic.getBooks().addAll(...)
-            (new Http(getApplicationContext())).downloadBook(getApplicationContext(), category.getName(), new StringCallback() {
-                @Override
-                public void onResponse(String response, int id) {
-                    progressDialog.cancel();
-
-                    startWorking(i);
-                }
-
-                @Override
-                public void onError(Call call, Exception e, int id) {
-                    progressDialog.cancel();
-                    showMsg("云端 " + category.getName() + " 类图书数据下载失败");
-                }
-            });
-        } else {
-            /*
-             * 用本地数据
-             */
+        // 有图书数据 并且 是自己的，或有数据待上传到云端
+        if ((categorySize > 0 && isMine) || App.Data.Local.containsKey(category.getName())) {
             startWorking(i);
+            return;
         }
+
+        // 有图书数据 并且 不是自己的，在 网络无法连接 情况下
+        if (categorySize > 0 && !isMine && !App.isNetworkAvailable(this)) {
+            Toast.makeText(this, "网络无法连接，当前类目数据可能不是最新的...", Toast.LENGTH_LONG).show();
+            startWorking(i);
+            return;
+        }
+
+        // 无图书数据 或 不是自己的类目，在 网络可连接 情况下
+        // 从云端下载图书数据 并 App.Data.Basic.getBooks().addAll(...)
+        cloudGetCategoryBooks(category.getName(), new StringCallback() {
+            @Override
+            public void onResponse(String response, int id) {
+                startWorking(i);
+            }
+
+            @Override
+            public void onError(Call call, Exception e, int id) {}
+        });
     }
 
     /**
@@ -165,7 +186,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
             showConfirm("上传数据", "在上传数据到云端之前，需先确认本地编辑数据正确无误，是否继续？", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    actionUploadDataToCloud();
+                    cloudUploadCategoryBooks();
                 }
             });
         }
@@ -173,7 +194,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
             showConfirm("下载数据", "云端下载的数据会覆盖本地数据，所以若本地数据已修改，需先上传后才能执行此操作，不然会造成数据丢失，是否继续？", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    actionCloudCategoryDataDownload();
+                    cloudGetCategories();
                 }
             });
         }
@@ -183,6 +204,9 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         if (id == R.id.action_json_editor) {
             actionStartJsonEditor();
         }
+        if (id == R.id.action_about) {
+            displayAboutDialog();
+        }
 
         return true;
     }
@@ -191,7 +215,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
      * 登记员名字修改
      */
     private void showRegistrarNameEditDialog() {
-        final TextEditDialog editDialog = new TextEditDialog(this, "Your Name ?", "填入你的名字来和本程序签订契约");
+        final TextEditDialog editDialog = new TextEditDialog(this, "Your Name ?", "填入你的名字和我签订契约，成为名副其实的图书登记员吧！");
 
         // 填入原来的名字
         String beforeName = App.Data.getRegistrarName();
@@ -205,6 +229,8 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
                 // 后来新的名字
                 String newName = editDialog.getText();
                 App.Data.setRegistrarName(newName);
+
+                dataEmptyCheck();
             }
         });
 
@@ -215,6 +241,11 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
      * 创建类目对话框
      */
     private void showCreateCategoryDialog() {
+        if (App.Data.getRegistrarName().trim().length() < 1) {
+            showMsg("请先和本程序签订契约");
+            return;
+        }
+
         final TextEditDialog editDialog = new TextEditDialog(this, "新建类目", "填入图书类目名，例如：Z");
 
         editDialog.setPositiveButton(new DialogInterface.OnClickListener() {
@@ -249,6 +280,8 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         CategoryBean categoryBean = new CategoryBean();
         categoryBean.setName(name);
         categoryBean.setRegistrarName(App.Data.getRegistrarName());
+        categoryBean.setCanDelete(false);
+        categoryBean.setCreatedAt(new Date().getTime() + "");
 
         BookBean newBook = new BookBean();
         newBook.setNumbering(1);
@@ -293,50 +326,52 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     }
 
     /**
-     * 下载云端类目数据（不含图书的）
+     * 从云端获取所有类目（包括图书）
      */
-    public void actionCloudCategoryDataDownload() {
-        final ProgressDialog progressDialog = new ProgressDialog(CategoryActivity.this);
-        progressDialog.setMessage("正在从云端下载数据...");
-        progressDialog.show();
+    public void cloudGetCategories() {
+        (new Http(this)).getCategories();
+    }
 
-        (new Http(getApplicationContext())).downloadCategory(new StringCallback() {
+    /**
+     * 从云端获取单个类目所有图书
+     */
+    public void cloudGetCategoryBooks(final String categoryName, final StringCallback callbackEvent) {
+        (new Http(this)).getCategoryBooks(categoryName, new StringCallback() {
             @Override
             public void onResponse(String response, int id) {
-                progressDialog.cancel();
-                mAdapter.notifyDataSetChanged();
-                showMsg("云端类目数据下载成功");
+                callbackEvent.onResponse(response, id);
             }
 
             @Override
             public void onError(Call call, Exception e, int id) {
-                progressDialog.cancel();
-                showMsg("云端类目数据下载失败");
+                callbackEvent.onError(call, e, id);
             }
+        });
+    }
+
+    /**
+     * 同上 - 从云端获取单个类目所有图书
+     */
+    public void cloudGetCategoryBooks(final String categoryName) {
+        (new Http(this)).getCategoryBooks(categoryName, new StringCallback() {
+            @Override
+            public void onResponse(String response, int id) {}
+
+            @Override
+            public void onError(Call call, Exception e, int id) {}
         });
     }
 
     /**
      * 上传数据到云端
      */
-    public void actionUploadDataToCloud() {
-        final ProgressDialog progressDialog = new ProgressDialog(CategoryActivity.this);
-        progressDialog.setMessage("正在上传数据到云端...");
-        progressDialog.show();
+    public void cloudUploadCategoryBooks() {
+        if (App.Data.getRegistrarName().trim().length() < 1) {
+            showMsg("请先和本程序签订契约");
+            return;
+        }
 
-        (new Http(getApplicationContext())).updateBook(getApplicationContext(), new StringCallback() {
-            @Override
-            public void onResponse(String response, int id) {
-                progressDialog.cancel();
-                showMsg("数据上传到云端成功");
-            }
-
-            @Override
-            public void onError(Call call, Exception e, int id) {
-                progressDialog.cancel();
-                showMsg("数据上传到云端失败");
-            }
-        });
+        (new Http(this)).uploadCategoryBooks();
     }
 
     /**
@@ -393,8 +428,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        Uri uri = FileProvider.getUriForFile(getApplicationContext(), getPackageName() + ".provider", file);
-        intent.setDataAndType(uri, "text/*");
+        intent.setDataAndType(App.getUriForFile(this, file), "text/*");
         startActivity(Intent.createChooser(intent, "选择 APP 打开表格文档"));
     }
 
@@ -419,8 +453,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         // 调用分享
         Intent sharingIntent = new Intent(Intent.ACTION_SEND);
         sharingIntent.setType("text/*");
-        Uri uri = FileProvider.getUriForFile(getApplicationContext(), getPackageName() + ".provider", file);
-        sharingIntent.putExtra(Intent.EXTRA_STREAM, uri);
+        sharingIntent.putExtra(Intent.EXTRA_STREAM, App.getUriForFile(this, file));
         startActivity(Intent.createChooser(sharingIntent, "分享到"));
     }
 
@@ -430,10 +463,6 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     public void displayCategoryActionsDialog(final int categoryIndex) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-
-        /*LayoutInflater inflater = LayoutInflater.from(this);
-        View layout = inflater.inflate(R.layout.category_actions_dialog, null);
-        builder.setView(layout);*/
 
         final CategoryBean category = App.Data.Basic.get(categoryIndex);
 
@@ -458,6 +487,44 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     }
 
     /**
+     * 显示 关于 对话框
+     */
+    public void displayAboutDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setPositiveButton("返回", null);
+        builder.setNeutralButton("作者 GITHUB", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface arg0, int arg1) {
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_VIEW);
+                Uri content_url = Uri.parse("https://github.com/Zneiat");
+                intent.setData(content_url);
+                startActivity(Intent.createChooser(intent, "选择一个浏览器打开链接"));
+            }
+        });
+        AlertDialog alertDialog = builder.create();
+        View layout = LayoutInflater.from(this).inflate(R.layout.about_dialog, null);
+        alertDialog.setView(layout);
+        alertDialog.show();
+
+        Calendar calendar = Calendar.getInstance();
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        ((TextView) alertDialog.findViewById(R.id.date_number)).setText(day+"");
+
+        // 版本号
+        String version = "";
+        try {
+            PackageManager manager = getPackageManager();
+            PackageInfo info = manager.getPackageInfo(getPackageName(), 0);
+            version = " " + info.versionName;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        TextView title = (TextView) alertDialog.findViewById(R.id.about_title);
+        title.setText(title.getText() + version);
+    }
+
+    /**
      * Activity 结束，获取响应结果
      */
     @Override
@@ -477,6 +544,8 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
             default:
                 break;
         }
+
+        dataEmptyCheck();
     }
 
     // 再点一次退出程序时间设置

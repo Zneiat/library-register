@@ -1,4 +1,4 @@
-package com.qwqaq.libraryregister.Beans;
+package com.qwqaq.libraryregister.beans;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
@@ -23,10 +23,6 @@ public class BookBean {
     @SerializedName("remarks")
     @Expose
     private String remarks;
-
-    @SerializedName("category_name")
-    @Expose
-    private String categoryName;
 
     public int getNumbering() {
         return numbering;
@@ -58,14 +54,6 @@ public class BookBean {
 
     public void setRemarks(String remarks) {
         this.remarks = remarks;
-    }
-
-    public String getCategoryName() {
-        return categoryName;
-    }
-
-    public void setCategoryName(String categoryId) {
-        this.categoryName = categoryId;
     }
 
 }

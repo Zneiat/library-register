@@ -1,4 +1,4 @@
-package com.qwqaq.libraryregister.Utils;
+package com.qwqaq.libraryregister.utils;
 
 import android.content.Context;
 import android.view.View;

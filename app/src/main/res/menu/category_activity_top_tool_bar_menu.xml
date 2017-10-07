@@ -19,15 +19,18 @@
             <menu>
                 <item android:id="@+id/action_download"
                     android:title="下载数据" />
-                <item android:id="@+id/action_edit_registrar_name"
-                    android:title="修改你的名字" />
                 <item android:id="@+id/action_json_editor"
                     android:title="数据手动编辑" />
             </menu>
         </item>
 
+        <item android:id="@+id/action_edit_registrar_name"
+            android:title="签订契约"
+            app:showAsAction="never" />
+
         <item android:id="@+id/action_about"
-            android:title="关于 APP" />
+            android:title="关于 APP"
+            app:showAsAction="never" />
 
     </group>
 </menu>
