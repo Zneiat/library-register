@@ -1,5 +1,6 @@
 package com.qwqaq.libraryregister.activities;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,6 +32,13 @@ public class JsonEditorActivity extends Activity {
         String result = json.formatJson(jsonStr);
 
         mDataEditText.setText(result);
+
+        showConfirm("警告", "这是一个开发者功能，可能前方有怪兽哟！确定要返回吗？", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                finish();
+            }
+        });
     }
 
     @Override

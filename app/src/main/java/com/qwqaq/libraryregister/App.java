@@ -48,7 +48,7 @@ public class App extends Application {
         OkHttpUtils.initClient(okHttpClient);
 
         // Preferences
-        QWQ_PREF = getSharedPreferences("QWQ_PREF", Context.MODE_PRIVATE);
+        QWQ_PREF = getSharedPreferences("LR_PREF", Context.MODE_PRIVATE);
         // QWQ_PREF.edit().clear().apply(); // 清除所有内容
 
         // Data.dataPrefDel();

@@ -1,7 +1,6 @@
 package com.qwqaq.libraryregister.activities;
 
 import android.Manifest;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -13,6 +12,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -30,20 +30,23 @@ import com.qwqaq.libraryregister.beans.BookBean;
 import com.qwqaq.libraryregister.beans.CategoryBean;
 import com.qwqaq.libraryregister.Http;
 import com.qwqaq.libraryregister.R;
+import com.qwqaq.libraryregister.utils.DateUtil;
+import com.qwqaq.libraryregister.utils.StreamUtil;
 import com.zhy.http.okhttp.callback.StringCallback;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Calendar;
-import java.util.Date;
 
 import okhttp3.Call;
 
-public class CategoryActivity extends Activity implements AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
+public class CategoryActivity extends Activity implements AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener, SwipeRefreshLayout.OnRefreshListener {
 
     public ListView mListView;
     public CategoryAdapter mAdapter;
+
+    public SwipeRefreshLayout mSwipeView;
 
     public static final int EDITOR_ACTIVITY_CODE = 601;
     public static final int JSON_EDITOR_ACTIVITY_CODE = 602;
@@ -81,17 +84,31 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
 
         mListView.setAdapter(mAdapter);
 
-        dataEmptyCheck();
+        mSwipeView = (SwipeRefreshLayout) findViewById(R.id.swipe);
+        mSwipeView.setColorSchemeResources(android.R.color.holo_blue_light, android.R.color.holo_orange_dark, android.R.color.holo_green_light);
+        mSwipeView.setOnRefreshListener(this);
+
+        // 第一次启动程序
+        if (App.QWQ_PREF.getBoolean("IS_FIRST_LAUNCH", true)) {
+            if (!App.isNetworkAvailable(this)) {
+                // 导入数据
+                String json = StreamUtil.get(this, R.raw.app_initialization_import);
+                (new Http(this)).importCategoryByRespStr(this, json);
+            }
+            App.QWQ_PREF.edit().putBoolean("IS_FIRST_LAUNCH", false).apply();
+        }
+
+        statusCheck();
     }
 
     // 离线提醒
     private boolean offlineNotification = true;
 
     /**
-     * 数据为空检测
+     * 状态检测
      */
-    private void dataEmptyCheck() {
-        // 数据为空，但是网络可以用
+    private void statusCheck() {
+        // 离线状态提醒
         if (!App.isNetworkAvailable(this) && offlineNotification) {
             Snackbar.make(mContentArea, "离线状态，相关云端操作已禁用", Snackbar.LENGTH_LONG)
                     .setAction("不再提醒", new View.OnClickListener() {
@@ -101,8 +118,9 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
                         }
                     }).show();
         }
+
+        // 数据为空，但是网络可以用
         if (App.Data.Basic.size() < 1 && App.isNetworkAvailable(this)) {
-            showMsg("看起来似乎什么都没有呀~\n正在从云端下载数据");
             cloudGetCategories();
         }
     }
@@ -114,17 +132,16 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
     public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l) {
         final CategoryBean category = App.Data.Basic.get(i);
         int categorySize = category.getBooks().size();
-        boolean isMine = category.getRegistrarName().trim().equals(App.Data.getRegistrarName().trim());
 
         // 有图书数据 并且 是自己的，或有数据待上传到云端
-        if ((categorySize > 0 && isMine) || App.Data.Local.containsKey(category.getName())) {
+        if ((categorySize > 0 && category.getIsMine()) || App.Data.Local.containsKey(category.getName())) {
             startWorking(i);
             return;
         }
 
         // 有图书数据 并且 不是自己的，在 网络无法连接 情况下
-        if (categorySize > 0 && !isMine && !App.isNetworkAvailable(this)) {
-            Toast.makeText(this, "网络无法连接，当前类目数据可能不是最新的...", Toast.LENGTH_LONG).show();
+        if (categorySize > 0 && !category.getIsMine() && !App.isNetworkAvailable(this)) {
+            Toast.makeText(this, "网络无法连接，数据无法更新\n所以，你看到的数据可能是旧的", Toast.LENGTH_LONG).show();
             startWorking(i);
             return;
         }
@@ -168,6 +185,28 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         startActivityForResult(intent, EDITOR_ACTIVITY_CODE);
     }
 
+    /**
+     * 刷新事件
+     */
+    @Override
+    public void onRefresh()
+    {
+        // 如果网络无法连接
+        if (!App.isNetworkAvailable(this)) {
+            mSwipeView.setRefreshing(false);
+        }
+
+        // 更新类目数据
+        (new Http(this)).getCategoriesUpdate();
+
+        /*new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mSwipeView.setRefreshing(false);
+            }
+        }, 3000);*/
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.category_activity_top_tool_bar_menu, menu);
@@ -191,7 +230,12 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
             });
         }
         if (id == R.id.action_download) {
-            showConfirm("下载数据", "云端下载的数据会覆盖本地数据，所以若本地数据已修改，需先上传后才能执行此操作，不然会造成数据丢失，是否继续？", new DialogInterface.OnClickListener() {
+            // 如果本地没有数据，直接下载
+            if (App.Data.Basic.size() < 1) {
+                cloudGetCategories();
+            }
+
+            showConfirm("下载数据", "云端下载的数据会覆盖本地数据，所以如果本地数据已修改，需先上传后才能执行此操作，不然会造成数据丢失，是否继续？", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     cloudGetCategories();
@@ -229,8 +273,9 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
                 // 后来新的名字
                 String newName = editDialog.getText();
                 App.Data.setRegistrarName(newName);
+                mAdapter.notifyDataSetChanged();
 
-                dataEmptyCheck();
+                statusCheck();
             }
         });
 
@@ -280,8 +325,11 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         CategoryBean categoryBean = new CategoryBean();
         categoryBean.setName(name);
         categoryBean.setRegistrarName(App.Data.getRegistrarName());
-        categoryBean.setCanDelete(false);
-        categoryBean.setCreatedAt(new Date().getTime() + "");
+        categoryBean.setCanDelete(true);
+
+        String currentTime = DateUtil.getSecondTimestamp() + "";
+        categoryBean.setCreatedAt(currentTime);
+        categoryBean.setUpdateAt(currentTime);
 
         BookBean newBook = new BookBean();
         newBook.setNumbering(1);
@@ -291,7 +339,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
 
         categoryBean.getBooks().add(0, newBook);
 
-        mAdapter.add(categoryBean);
+        mAdapter.insert(categoryBean, 0);
         App.Data.Local.put(categoryBean.getName(), categoryBean);
         App.Data.dataPrefStore();
 
@@ -307,7 +355,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         showConfirm("删除图书类目", "是否确定删除该类图书？", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                if (!category.getRegistrarName().equals(App.Data.getRegistrarName())) {
+                if (!category.getIsMine()) {
                     showMsg("对该类目下手... 你做不到");return;
                 }
                 if (!category.getCanDelete()) {
@@ -420,14 +468,15 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         try {
             file = buildCategoryBookCsvData(categoryIndex);
         } catch (Exception e) {
-            Log.d("", "", e);
-            showMsg("Emm... 文件准备失败... 无法分享");
+            Log.e("", "", e);
+            showMsg("心塞... 文件准备失败...");
             return;
         }
         // 打开
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         intent.setDataAndType(App.getUriForFile(this, file), "text/*");
         startActivity(Intent.createChooser(intent, "选择 APP 打开表格文档"));
     }
@@ -446,14 +495,16 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         try {
             file = buildCategoryBookCsvData(categoryIndex);
         } catch (Exception e) {
-            Log.d("", "", e);
-            showMsg("Emm... 文件准备失败... 无法分享");
+            Log.e("", "", e);
+            showMsg("心塞... 文件准备失败...");
             return;
         }
         // 调用分享
         Intent sharingIntent = new Intent(Intent.ACTION_SEND);
         sharingIntent.setType("text/*");
         sharingIntent.putExtra(Intent.EXTRA_STREAM, App.getUriForFile(this, file));
+        sharingIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        sharingIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         startActivity(Intent.createChooser(sharingIntent, "分享到"));
     }
 
@@ -467,7 +518,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         final CategoryBean category = App.Data.Basic.get(categoryIndex);
 
         builder.setTitle("你想对 ‘类目 " + category.getName() + "’ 做什么？");
-        builder.setItems(new String[]{"用其他 APP 打开", "作为文件分享", "删除"}, new DialogInterface.OnClickListener() {
+        builder.setItems(new String[]{"用其他 APP 打开", "作为文件分享", "从云端更新数据", "删除"}, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 switch (i) {
@@ -478,6 +529,17 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
                         shareCategoryCsv(categoryIndex);
                         break;
                     case 2:
+                        (new Http(CategoryActivity.this)).getCategoryBooks(category.getName(), new StringCallback() {
+                            @Override
+                            public void onResponse(String response, int id) {
+                                showMsg("类目" + category.getName() + " 数据已从云端更新");
+                            }
+
+                            @Override
+                            public void onError(Call call, Exception e, int id) {}
+                        });
+                        break;
+                    case 3:
                         deleteCategory(categoryIndex);
                         break;
                 }
@@ -545,7 +607,7 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
                 break;
         }
 
-        dataEmptyCheck();
+        statusCheck();
     }
 
     // 再点一次退出程序时间设置

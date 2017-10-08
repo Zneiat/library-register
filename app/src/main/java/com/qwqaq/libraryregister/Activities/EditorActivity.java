@@ -114,6 +114,22 @@ public class EditorActivity extends Activity {
                 nxtBtnClick();
             }
         });
+
+        // 长按快速跳转
+        btnBookPre.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                redirectBook(0);
+                return true;
+            }
+        });
+        btnBookNxt.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                redirectBook(mWorkCategory.getLastNonNullBookIndex());
+                return true;
+            }
+        });
     }
 
     /**
@@ -122,7 +138,7 @@ public class EditorActivity extends Activity {
     private boolean setEditing(boolean isEditing) {
         if (isEditing) {
             // 限制编辑
-            if (!mWorkCategory.getRegistrarName().equals(App.Data.getRegistrarName())) {
+            if (!mWorkCategory.getIsMine()) {
                 showMsg("由" + mWorkCategory.getRegistrarName() + "全权负责，以免发生混乱所以禁止编辑");
                 return false;
             }
@@ -344,8 +360,7 @@ public class EditorActivity extends Activity {
         bookListDialog("跳转到一本书", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int index) {
                 // 点击项目定位到指定 index 图书，进行编辑
-                mCurrentBookIndex = index;
-                bookEditUiRefresh();
+                redirectBook(index);
                 dialog.cancel();
             }
         });
@@ -391,10 +406,27 @@ public class EditorActivity extends Activity {
     }
 
     /**
+     * 快速跳转到某本书
+     */
+    private void redirectBook(int bookIndex) {
+        if (mWorkCategory.getBooks().size() < bookIndex + 1) {
+            showMsg("跳转失败，没有 第 " + (bookIndex + 1) + " 本图书");
+            return;
+        }
+
+        // 在跳转之前 保存当前图书
+        if (mIsEditing) currentBookSave();
+
+        mCurrentBookIndex = bookIndex;
+        bookEditUiRefresh();
+        showMsg("已跳转到 第 " + (bookIndex + 1) + " 本图书");
+    }
+
+    /**
      * 快速复制某本书
      */
     private void copyBook(int bookIndex) {
-        if (bookIndex >= getBooks().size()) {
+        if (bookIndex < 0 || bookIndex >= getBooks().size()) {
             showMsg("没这本书，不能复制");
             return;
         }

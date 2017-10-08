@@ -14,21 +14,40 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:paddingBottom="20dp"
+        android:paddingTop="20dp"
         android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:paddingTop="20dp">
+        android:paddingRight="10dp">
 
-        <TextView
-            android:id="@+id/category_name"
+        <!-- Head -->
+        <LinearLayout
+            android:id="@+id/category_head"
+            android:orientation="horizontal"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ellipsize="marquee"
-            android:fadingEdge="horizontal"
-            android:singleLine="true"
-            android:text="NAME"
-            android:textColor="#424242"
-            android:textSize="16sp" />
+            android:layout_height="20dp">
 
+            <ImageView
+                android:visibility="gone"
+                android:id="@+id/category_is_mine"
+                android:layout_width="20sp"
+                android:layout_height="20sp"
+                android:layout_marginRight="10dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_star_yellow_a700_24dp" />
+
+            <TextView
+                android:id="@+id/category_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="marquee"
+                android:fadingEdge="horizontal"
+                android:maxLines="1"
+                android:text="无名类目"
+                android:textColor="#424242"
+                android:textSize="16sp" />
+
+            </LinearLayout>
+
+        <!-- Desc -->
         <LinearLayout
             android:id="@+id/category_desc"
             android:layout_marginTop="10dp"
@@ -41,7 +60,28 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:text="DESC"
+                android:text="无名氏"
+                android:textColor="#9c9c9c"
+                android:textSize="14sp"
+                android:ellipsize="marquee"
+                android:fadingEdge="horizontal"
+                android:maxLines="1" />
+
+            <View
+                android:layout_width="1sp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_height="match_parent"
+                android:background="#eff3f5" />
+            
+            <TextView
+                android:id="@+id/category_update_datetime"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="很久很久以前"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:textColor="#9c9c9c"
                 android:textSize="14sp" />
 
@@ -49,6 +89,7 @@
 
     </LinearLayout>
 
+    <!-- Right Part -->
     <LinearLayout
         android:layout_width="60dp"
         android:layout_height="wrap_content"
@@ -56,10 +97,18 @@
         android:gravity="center">
 
         <ImageView
+            android:visibility="gone"
+            android:id="@+id/category_is_complete"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_gravity="center"
+            android:src="@mipmap/status_complete" />
+
+        <ImageView
             android:id="@+id/data_status"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_centerVertical="true"
+            android:layout_width="23dp"
+            android:layout_height="23dp"
+            android:layout_gravity="center"
             android:src="@drawable/ic_data_status_local" />
 
     </LinearLayout>

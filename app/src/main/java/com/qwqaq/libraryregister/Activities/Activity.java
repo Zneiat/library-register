@@ -81,7 +81,7 @@ public abstract class Activity extends AppCompatActivity {
     /**
      * 显示一条消息
      */
-    protected void showMsg(String msg) {
+    public void showMsg(String msg) {
         Snackbar.make(mContentArea, msg, Snackbar.LENGTH_LONG).show();
     }
 

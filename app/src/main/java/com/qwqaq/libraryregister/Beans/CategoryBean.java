@@ -2,6 +2,8 @@ package com.qwqaq.libraryregister.beans;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import com.qwqaq.libraryregister.App;
+import com.qwqaq.libraryregister.utils.DateUtil;
 
 import java.util.ArrayList;
 
@@ -24,7 +26,7 @@ public class CategoryBean {
     // 备注
     @SerializedName("remarks")
     @Expose
-    private Object remarks;
+    private String remarks;
 
     // TODO: 更新日期
     @SerializedName("update_at")
@@ -37,6 +39,8 @@ public class CategoryBean {
     private String createdAt;
 
     /** @link https://howtoprogram.xyz/2016/10/16/ignore-or-exclude-field-in-gson/ */
+    @SerializedName("books")
+    @Expose
     private ArrayList<BookBean> books = new ArrayList<BookBean>();
 
     public String getName() {
@@ -51,20 +55,43 @@ public class CategoryBean {
         return registrarName;
     }
 
+    // 类目是不是自己管？
+    public boolean getIsMine() {
+        if (this.getRegistrarName() == null || this.getRegistrarName().length() < 1)
+            return false;
+
+        return this.getRegistrarName().equals(App.Data.getRegistrarName());
+    }
+
     public void setRegistrarName(String registrarName) {
         this.registrarName = registrarName;
     }
 
-    public Object getRemarks() {
+    public String getRemarks() {
         return remarks;
     }
 
-    public void setRemarks(Object remarks) {
+    public void setRemarks(String remarks) {
         this.remarks = remarks;
     }
 
     public String getUpdateAt() {
         return updateAt;
+    }
+
+    // 获取中文的更新时间（刚刚，几天前...）
+    public String getUpdateChineseShortTime() {
+        if (this.getUpdateAt() == null || this.getUpdateAt().length() < 1 || this.getUpdateAt().equals("0"))
+            return "";
+
+        String updateAtText;
+        try {
+            updateAtText = DateUtil.getShortTime(Long.parseLong(this.getUpdateAt() + "000"));
+        } catch (Exception e) {
+            updateAtText = "";
+        }
+
+        return updateAtText;
     }
 
     public void setUpdateAt(String updateAt) {
@@ -104,5 +131,22 @@ public class CategoryBean {
 
     public void setBookEditStartIndex(int index) {
         this.mBookEditStartIndex = index;
+    }
+
+    // 获取图书有效的最后一本的 index
+    public int getLastNonNullBookIndex() {
+        if (this.getBooks() == null || this.getBooks().size() < 1)
+            return 0;
+
+        int index = 0;
+        for (int bookIndex = this.getBooks().size() - 1; bookIndex > - 1; bookIndex--) {
+            BookBean bookItem = this.getBooks().get(bookIndex);
+            if (bookItem.getName() != null && bookItem.getName().trim().length() > 0) {
+                index = bookIndex;
+                break;
+            }
+        }
+
+        return index;
     }
 }
