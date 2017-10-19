@@ -8,6 +8,7 @@ import android.support.v7.app.AlertDialog;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 
 import com.qwqaq.libraryregister.beans.BookBean;
@@ -19,8 +20,13 @@ import java.util.ArrayList;
 
 public class EditorActivity extends Activity {
 
+    private Menu mMenu = null;
+
     // 是否正在编辑
     private boolean mIsEditing = false;
+
+    // 是否已保存编辑
+    private boolean mIsSaved = false;
 
     // 源数据在 App.Data.Basic 中的 index
     private int mDataBasicIndex;
@@ -63,6 +69,9 @@ public class EditorActivity extends Activity {
 
         // 图书编辑界面刷新
         bookEditUiRefresh();
+
+        // 保持屏幕常亮
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     /**
@@ -88,7 +97,7 @@ public class EditorActivity extends Activity {
         mTopToolBar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                editExit();
+                 editExit();
             }
         });
 
@@ -97,6 +106,16 @@ public class EditorActivity extends Activity {
         mInputName = (TextInputEditText) findViewById(R.id.input_name);
         mInputPress = (TextInputEditText) findViewById(R.id.input_press);
         mInputRemarks = (TextInputEditText) findViewById(R.id.input_remarks);
+
+        View.OnFocusChangeListener onFocusChangeListener = new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                mIsSaved = false;
+            }
+        };
+        mInputName.setOnFocusChangeListener(onFocusChangeListener);
+        mInputPress.setOnFocusChangeListener(onFocusChangeListener);
+        mInputRemarks.setOnFocusChangeListener(onFocusChangeListener);
 
         // 设置 Button
         btnBookPre = (Button) findViewById(R.id.btn_item_pre);
@@ -147,6 +166,11 @@ public class EditorActivity extends Activity {
             mInputPress.setEnabled(true);
             mInputRemarks.setEnabled(true);
             mInputName.requestFocus();
+            if (mMenu != null)
+                mMenu.findItem(R.id.action_save).setVisible(true);
+
+            // 编辑还未保存
+            mIsSaved = false;
         } else {
             setTitle(getCategoryName() + " 类图书 - 浏览");
             mInputName.setEnabled(false);
@@ -155,6 +179,8 @@ public class EditorActivity extends Activity {
             mInputName.clearFocus();
             mInputPress.clearFocus();
             mInputRemarks.clearFocus();
+            if (mMenu != null)
+                mMenu.findItem(R.id.action_save).setVisible(false);
         }
         mIsEditing = isEditing;
         return true;
@@ -264,6 +290,9 @@ public class EditorActivity extends Activity {
         App.Data.Local.put(getCategoryName(), App.Data.categoryBeanClone(mWorkCategory));
         App.Data.Basic.set(mDataBasicIndex, App.Data.categoryBeanClone(mWorkCategory));
         App.Data.dataPrefStore();
+
+        // 编辑已保存
+        mIsSaved = true;
     }
 
     /**
@@ -272,6 +301,13 @@ public class EditorActivity extends Activity {
     public void editExit() {
         if (!mIsEditing) {
             // 不处于编辑状态，不保存
+            setResult(RESULT_CODE_UNMODIFIED);
+            finish();
+            return;
+        }
+
+        if (mIsSaved) {
+            // 编辑状态已未保存
             setResult(RESULT_CODE_UNMODIFIED);
             finish();
             return;
@@ -321,6 +357,7 @@ public class EditorActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.signup_activity_top_tool_bar_menu, menu);
         super.onCreateOptionsMenu(menu);
+        mMenu = menu;
         return true;
     }
 
@@ -332,6 +369,11 @@ public class EditorActivity extends Activity {
             if (setEditing(true)) {
                 item.setVisible(false);
             }
+        }
+
+        if (id == R.id.action_save && mIsEditing) {
+            saveWorkCategory();
+            showMsg(getCategoryName() + " 类数据保已保存");
         }
 
         if (id == R.id.action_redirect_book) {

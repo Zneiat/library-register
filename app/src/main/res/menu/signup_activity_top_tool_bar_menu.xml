@@ -5,6 +5,13 @@
 
     <group android:id="@+id/normal_group">
         <item
+            android:id="@+id/action_save"
+            android:title="保存数据"
+            android:icon="@drawable/ic_save_white_24dp"
+            app:showAsAction="always"
+            android:visible="false" />
+
+        <item
             android:id="@+id/action_go_edit"
             android:title="开始编辑"
             android:icon="@drawable/ic_keyboard_white_24dp"
