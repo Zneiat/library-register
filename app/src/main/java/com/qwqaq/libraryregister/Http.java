@@ -68,7 +68,7 @@ public class Http {
     }
 
     // URLs
-    public static final String API_BASE = "http://lr.qwqaq.com";
+    public static final String API_BASE = GlobalConstant.API_BASE_URL;
 
     /**
      * 获取 CategoryActivity

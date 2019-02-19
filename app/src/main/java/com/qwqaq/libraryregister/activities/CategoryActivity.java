@@ -91,9 +91,9 @@ public class CategoryActivity extends Activity implements AdapterView.OnItemClic
         // 第一次启动程序
         if (App.QWQ_PREF.getBoolean("IS_FIRST_LAUNCH", true)) {
             if (!App.isNetworkAvailable(this)) {
-                // 导入数据
+                /*// 导入数据
                 String json = StreamUtil.get(this, R.raw.app_initialization_import);
-                (new Http(this)).importCategoryByRespStr(this, json);
+                (new Http(this)).importCategoryByRespStr(this, json);*/
             }
             App.QWQ_PREF.edit().putBoolean("IS_FIRST_LAUNCH", false).apply();
         }
